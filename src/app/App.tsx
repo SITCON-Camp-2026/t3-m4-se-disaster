@@ -11,41 +11,64 @@ import { initialDrafts } from "../features/phase-0/phase0-initial-drafts";
 import { analyzeReportWithAI } from "../features/phase-0/phase0-ai";
 import { Phase0Dashboard } from "../features/phase-0/Phase0Dashboard";
 
-type TabKey = "dashboard" | "raw" | "workbench";
+// V1 imports
+import { V1ReporterView } from "../features/v1/V1ReporterView";
+import { V1OrganizerView } from "../features/v1/V1OrganizerView";
+import { V1ActorView } from "../features/v1/V1ActorView";
+import type { V1JudgementDraft } from "../features/v1/v1-types";
+
+type TabKey =
+  | "dashboard"
+  | "raw"
+  | "workbench"
+  | "v1_reporter"
+  | "v1_organizer"
+  | "v1_actor";
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "dashboard", label: "數據儀表板" },
   { key: "raw", label: "原始資訊" },
   { key: "workbench", label: "整理工作台" },
+  { key: "v1_reporter", label: "V1 回報者管道" },
+  { key: "v1_organizer", label: "V1 資訊整理台" },
+  { key: "v1_actor", label: "V1 行動者看板" },
 ];
 
 const phase0Records = messyReports satisfies Phase0MessyRecord[];
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
+  // Lift records into state so dynamically added reports from V1 appear everywhere
+  const [records, setRecords] = useState<Phase0MessyRecord[]>(
+    () => phase0Records,
+  );
+
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#/v1/reporter") return "v1_reporter";
+      if (hash === "#/v1/organizer") return "v1_organizer";
+      if (hash === "#/v1/actor") return "v1_actor";
+    }
+    return "dashboard";
+  });
   const [selectedRecordId, setSelectedRecordId] = useState(
     phase0Records[0]?.id ?? "",
   );
 
   // Persistence Memory for drafts
-  const [drafts, setDrafts] = useState<Record<string, Phase0JudgementDraft>>(
-    () => {
-      if (
-        typeof window !== "undefined" &&
-        typeof localStorage !== "undefined"
-      ) {
-        const saved = localStorage.getItem("sitcon_camp_drafts");
-        if (saved) {
-          try {
-            return JSON.parse(saved);
-          } catch (e) {
-            console.error("Failed to parse saved drafts", e);
-          }
+  const [drafts, setDrafts] = useState<Record<string, V1JudgementDraft>>(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("sitcon_camp_drafts");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse saved drafts", e);
         }
       }
-      return initialDrafts;
-    },
-  );
+    }
+    return initialDrafts as unknown as Record<string, V1JudgementDraft>;
+  });
 
   // Persistence Memory for API Credentials
   const [apiKey, setApiKey] = useState(() => {
@@ -97,8 +120,19 @@ export function App() {
     setActiveTab("workbench");
   }
 
-  function handleSaveDraft(recordId: string, draft: Phase0JudgementDraft) {
+  function handleSaveDraft(recordId: string, draft: V1JudgementDraft) {
     setDrafts((prev) => ({ ...prev, [recordId]: draft }));
+  }
+
+  function handleSaveDraftPhase0(
+    recordId: string,
+    draft: Phase0JudgementDraft,
+  ) {
+    const v1Draft: V1JudgementDraft = {
+      ...draft,
+      status: drafts[recordId]?.status ?? "unverified_draft",
+    };
+    handleSaveDraft(recordId, v1Draft);
   }
 
   function handleDeleteDraft(recordId: string) {
@@ -135,8 +169,12 @@ export function App() {
         [recordId]: {
           messyRecordId: recordId,
           ...result,
+          status: prev[recordId]?.status ?? "unverified_draft",
+          confirmedFields: [], // Clear confirmed flags so V1 Organizer panel flashes them
+          hasAiSuggestions: true,
         },
       }));
+      return result;
     } catch (err) {
       console.error(`AI analysis failed for ${recordId}:`, err);
       alert("AI 分析失敗，請確認你的 API 金鑰是否正確並重試。");
@@ -160,10 +198,16 @@ export function App() {
     const nextDrafts = { ...drafts };
     let count = 0;
 
-    const targetRecords = phase0Records.filter((r) => !drafts[r.id]);
+    const targetRecords = records.filter((r) => {
+      const draft = drafts[r.id];
+      return (
+        !draft ||
+        (draft.status === "unorganized" && draft.possibleKind === "unknown")
+      );
+    });
 
     if (targetRecords.length === 0) {
-      alert("所有通報都已經建立整理草稿囉！");
+      alert("所有未整理通報都已經進行過 AI 分析囉！");
       setIsAiLoading(false);
       return;
     }
@@ -182,6 +226,9 @@ export function App() {
         nextDrafts[record.id] = {
           messyRecordId: record.id,
           ...result,
+          status: "unverified_draft",
+          confirmedFields: [],
+          hasAiSuggestions: true,
         };
       } catch (err) {
         console.error(`AI analysis failed for ${record.id}:`, err);
@@ -191,6 +238,45 @@ export function App() {
     setDrafts(nextDrafts);
     setIsAiLoading(false);
     setAiProgress("");
+  }
+
+  // V1 Reporter Action: Add report
+  function handleAddReportV1(
+    rawText: string,
+    eyewitnessType: "first_hand" | "second_hand",
+    phone: string,
+  ) {
+    const newId = `M-REP-${Date.now().toString().slice(-4)}`;
+    const newRecord: Phase0MessyRecord = {
+      id: newId,
+      rawText,
+      sourceType:
+        eyewitnessType === "first_hand" ? "first_hand_witness" : "social_post",
+      verificationStatus: "needs_review",
+      updatedAt: new Date().toLocaleTimeString("zh-TW", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    const newDraft: V1JudgementDraft = {
+      messyRecordId: newId,
+      status: "unorganized",
+      possibleKind: "unknown",
+      confidence: "low",
+      evidence: [],
+      blockers: [],
+      suggestedNextStep: "keep_raw",
+      unsafeToActDirectly: true,
+      humanReviewNote: "",
+      confirmedFields: [],
+      isPrivacySensitive: false,
+      eyewitnessType,
+      reporterPhone: phone,
+    };
+
+    setRecords((prev) => [newRecord, ...prev]);
+    setDrafts((prev) => ({ ...prev, [newId]: newDraft }));
   }
 
   return (
@@ -203,19 +289,67 @@ export function App() {
         </div>
 
         <nav className="sidebar-nav" aria-label="系統導覽">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              className={`sidebar-nav-btn ${activeTab === tab.key ? "active" : ""}`}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.key === "dashboard" && "📊"}
-              {tab.key === "raw" && "📥"}
-              {tab.key === "workbench" && "⚡"}
-              <span style={{ marginLeft: "8px" }}>{tab.label}</span>
-            </button>
-          ))}
+          <div
+            style={{
+              fontSize: "0.68rem",
+              color: "#64748b",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              fontWeight: 800,
+              margin: "16px 0 8px 12px",
+            }}
+          >
+            集中式集中原型 (Phase 0)
+          </div>
+          {tabs
+            .filter((t) => !t.key.startsWith("v1_"))
+            .map((tab) => (
+              <button
+                key={tab.key}
+                className={`sidebar-nav-btn ${activeTab === tab.key ? "active" : ""}`}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  window.location.hash = "";
+                }}
+              >
+                {tab.key === "dashboard" && "📊"}
+                {tab.key === "raw" && "📥"}
+                {tab.key === "workbench" && "⚡"}
+                <span style={{ marginLeft: "8px" }}>{tab.label}</span>
+              </button>
+            ))}
+
+          <div
+            style={{
+              fontSize: "0.68rem",
+              color: "#64748b",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              fontWeight: 800,
+              margin: "24px 0 8px 12px",
+            }}
+          >
+            角色分流工作台 (V1)
+          </div>
+          {tabs
+            .filter((t) => t.key.startsWith("v1_"))
+            .map((tab) => (
+              <button
+                key={tab.key}
+                className={`sidebar-nav-btn ${activeTab === tab.key ? "active" : ""}`}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  window.location.hash = `/v1/${tab.key.replace("v1_", "")}`;
+                }}
+              >
+                {tab.key === "v1_reporter" && "📢"}
+                {tab.key === "v1_organizer" && "🛠️"}
+                {tab.key === "v1_actor" && "🏃"}
+                <span style={{ marginLeft: "8px" }}>{tab.label}</span>
+              </button>
+            ))}
         </nav>
 
         <div className="sidebar-footer">
@@ -283,8 +417,66 @@ export function App() {
                 <p>使用安全邊界與 AI 智慧分析整理草稿，評估行動可行性。</p>
               </>
             )}
+            {activeTab === "v1_reporter" && (
+              <>
+                <h2>📢 V1 回報者管道</h2>
+                <p>
+                  快速填寫極簡災害通報，附帶模糊地址引導以保護現場居民隱私。
+                </p>
+              </>
+            )}
+            {activeTab === "v1_organizer" && (
+              <>
+                <h2>🛠️ V1 資訊整理台</h2>
+                <p>核實 AI 建議、標示隱私敏感資訊並偵測相同地區之衝突警示。</p>
+              </>
+            )}
+            {activeTab === "v1_actor" && (
+              <>
+                <h2>🏃 V1 前線行動看板</h2>
+                <p>
+                  查看已人工核實的安全任務，概略位置遮蔽以保障隱私，提供現場過期回饋機制。
+                </p>
+              </>
+            )}
           </div>
         </header>
+
+        {/* V1 Invite banner on top of App main (original Phase 0 views) */}
+        {!activeTab.startsWith("v1_") && (
+          <div className="v1-invite-banner">
+            <div className="v1-invite-content">
+              <h3>🚀 v1 角色分流工作台已釋出！(Role-based UI)</h3>
+              <p>
+                依據最新使用者訪談設計，隔離回報者、整理者與行動者界面，加強 AI
+                人工審查與隱私防護。
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="button"
+                className="btn-enter-v1"
+                onClick={() => setActiveTab("v1_reporter")}
+              >
+                📢 體驗回報管道
+              </button>
+              <button
+                type="button"
+                className="btn-enter-v1"
+                onClick={() => setActiveTab("v1_organizer")}
+              >
+                🛠️ 體驗 V1 整理台
+              </button>
+              <button
+                type="button"
+                className="btn-enter-v1"
+                onClick={() => setActiveTab("v1_actor")}
+              >
+                🏃 體驗行動看板
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Dynamic API Configuration Panel */}
         {showSettings && (
@@ -386,7 +578,12 @@ export function App() {
                         "您確定要清除所有已整理的草稿記憶，並恢復預設狀態嗎？",
                       )
                     ) {
-                      setDrafts(initialDrafts);
+                      setDrafts(
+                        initialDrafts as unknown as Record<
+                          string,
+                          V1JudgementDraft
+                        >,
+                      );
                       localStorage.removeItem("sitcon_camp_drafts");
                       alert("記憶已成功清除並重設！");
                     }
@@ -418,27 +615,50 @@ export function App() {
             marginTop: "12px",
           }}
         >
-          {phase0Records.length === 0 ? (
+          {records.length === 0 ? (
             <EmptyState message="目前沒有資料" />
           ) : activeTab === "dashboard" ? (
-            <Phase0Dashboard records={phase0Records} drafts={drafts} />
+            <Phase0Dashboard records={records} drafts={drafts} />
           ) : activeTab === "raw" ? (
             <Phase0RawInfoPanel
-              records={phase0Records}
+              records={records}
               selectedRecordId={selectedRecordId}
               onSelect={selectForWorkbench}
             />
-          ) : (
+          ) : activeTab === "workbench" ? (
             <Phase0Workbench
-              records={phase0Records}
+              records={records}
               selectedRecordId={selectedRecordId}
               onSelect={setSelectedRecordId}
               drafts={drafts}
-              onSaveDraft={handleSaveDraft}
+              onSaveDraft={handleSaveDraftPhase0}
               onDeleteDraft={handleDeleteDraft}
               onResetDraft={handleResetDraft}
               onSingleAI={handleSingleAIAnalysis}
               onBatchAI={handleBatchAIAnalysis}
+            />
+          ) : activeTab === "v1_reporter" ? (
+            <V1ReporterView
+              onAddReport={handleAddReportV1}
+              onBack={() => setActiveTab("dashboard")}
+            />
+          ) : activeTab === "v1_organizer" ? (
+            <V1OrganizerView
+              records={records}
+              drafts={drafts}
+              selectedRecordId={selectedRecordId}
+              onSelectRecordId={setSelectedRecordId}
+              onSaveDraft={handleSaveDraft}
+              onSingleAI={handleSingleAIAnalysis}
+              onBack={() => setActiveTab("dashboard")}
+              isAiLoading={isAiLoading}
+            />
+          ) : (
+            <V1ActorView
+              records={records}
+              drafts={drafts}
+              onSaveDraft={handleSaveDraft}
+              onBack={() => setActiveTab("dashboard")}
             />
           )}
         </section>

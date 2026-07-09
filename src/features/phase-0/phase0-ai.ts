@@ -67,14 +67,26 @@ Rules:
     temperature: 0.1,
   };
 
-  let requestUrl = baseUrl;
+  // Tolerant completion: Automatically append /v1/chat/completions if only the domain is configured
+  let completedBaseUrl = baseUrl.trim();
+  if (
+    !completedBaseUrl.endsWith("/completions") &&
+    !completedBaseUrl.endsWith("/completions/")
+  ) {
+    const cleanBase = completedBaseUrl.endsWith("/")
+      ? completedBaseUrl.slice(0, -1)
+      : completedBaseUrl;
+    completedBaseUrl = `${cleanBase}/v1/chat/completions`;
+  }
+
+  let requestUrl = completedBaseUrl;
   if (
     typeof window !== "undefined" &&
     (window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1") &&
-    baseUrl.startsWith("https://ai.tfdst.xyz")
+    completedBaseUrl.startsWith("https://ai.tfdst.xyz")
   ) {
-    requestUrl = baseUrl.replace("https://ai.tfdst.xyz", "/api-proxy");
+    requestUrl = completedBaseUrl.replace("https://ai.tfdst.xyz", "/api-proxy");
   }
 
   const response = await fetch(requestUrl, {
