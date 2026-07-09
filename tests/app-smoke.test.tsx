@@ -5,17 +5,17 @@ import { App } from "../src/app/App";
 describe("App", () => {
   it("renders starter title", () => {
     render(<App />);
-    expect(screen.getByText("災害資訊整理工作台")).toBeInTheDocument();
+    expect(screen.getByText("🌋 災害應變中心")).toBeInTheDocument();
   });
 
   it("keeps the home page focused on phase 0 tabs", () => {
     render(<App />);
 
     expect(
-      screen.getByRole("button", { name: "原始資訊" }),
+      screen.getByRole("button", { name: /原始資訊/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "整理工作台" }),
+      screen.getByRole("button", { name: /整理工作台/ }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "通報" }),
@@ -34,13 +34,9 @@ describe("App", () => {
   it("shows review states in the phase 0 workbench", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "整理工作台" }));
+    fireEvent.click(screen.getByRole("button", { name: /整理工作台/ }));
 
-    expect(
-      screen.getByText(
-        "第一階段的成功不是分類正確，而是把為什麼現在還不能判斷說清楚。",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("第一階段完成檢查")).toBeInTheDocument();
     expect(screen.getAllByText("待人工確認").length).toBeGreaterThan(0);
     expect(screen.getAllByText("未查核").length).toBeGreaterThan(0);
   });
@@ -48,7 +44,7 @@ describe("App", () => {
   it("keeps draft CRUD as learner work instead of starter output", () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "整理工作台" }));
+    fireEvent.click(screen.getByRole("button", { name: /整理工作台/ }));
 
     expect(screen.getByText("尚未建立整理草稿")).toBeInTheDocument();
     expect(

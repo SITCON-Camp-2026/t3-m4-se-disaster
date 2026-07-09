@@ -14,14 +14,6 @@ export function Phase0RawInfoPanel({
 }) {
   return (
     <div className="phase0-raw">
-      <div className="panel__header">
-        <div>
-          <h2>原始資訊</h2>
-          <p>這些還不是整理後資料，不能直接當成行動依據。</p>
-        </div>
-        <p>{records.length} 筆資料</p>
-      </div>
-
       <div className="grid">
         {records.map((record) => (
           <article

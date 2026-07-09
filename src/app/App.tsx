@@ -194,57 +194,108 @@ export function App() {
   }
 
   return (
-    <main className="layout">
-      <header className="hero">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: "16px",
-          }}
-        >
-          <div>
-            <p className="eyebrow">SITCON Camp 2026</p>
-            <h1>災害資訊整理工作台</h1>
+    <div className="app-shell">
+      {/* Sidebar Navigation */}
+      <aside className="app-sidebar">
+        <div className="sidebar-logo">
+          <h1>🌋 災害應變中心</h1>
+          <span>SITCON Camp 2026</span>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="系統導覽">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`sidebar-nav-btn ${activeTab === tab.key ? "active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.key === "dashboard" && "📊"}
+              {tab.key === "raw" && "📥"}
+              {tab.key === "workbench" && "⚡"}
+              <span style={{ marginLeft: "8px" }}>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-status">
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: apiKey ? "#10b981" : "#ef4444",
+                display: "inline-block",
+              }}
+            ></span>
+            <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>
+              {apiKey ? "Gemini 2.5 Flash 已連結" : "AI 金鑰未設定"}
+            </span>
           </div>
+
           <button
             type="button"
             onClick={() => setShowSettings(!showSettings)}
             style={{
               background: showSettings
-                ? "var(--primary-light)"
-                : "var(--surface)",
-              color: showSettings ? "var(--primary)" : "#475569",
-              border: "1px solid var(--border)",
-              padding: "8px 16px",
+                ? "rgba(255,255,255,0.08)"
+                : "transparent",
+              color: "#f8fafc",
+              border: "1px solid rgba(255,255,255,0.15)",
+              padding: "10px",
               borderRadius: "10px",
               fontWeight: "bold",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
               gap: "6px",
+              width: "100%",
+              fontSize: "0.85rem",
             }}
           >
             ⚙️ {apiKey ? "變更 API 設定" : "設定 API 金鑰"}
           </button>
         </div>
-        <p style={{ marginTop: "12px" }}>
-          第一階段先用 coding agent
-          做出可展示的前端原型，再從成果中看見資料品質、角色、狀態與來源的限制。
-          現已支援 <b>Gemini 2.5 Flash</b> 智慧分析功能。
-        </p>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="app-main">
+        {/* Page Header */}
+        <header className="page-header">
+          <div className="page-header-title">
+            {activeTab === "dashboard" && (
+              <>
+                <h2>📊 數據儀表板</h2>
+                <p>即時追蹤災害通報整理進度、分類及所需志工技能與決策瓶頸。</p>
+              </>
+            )}
+            {activeTab === "raw" && (
+              <>
+                <h2>📥 原始通報資訊</h2>
+                <p>檢視來自各社群管道與現場傳言的原始通報內容與驗證狀態。</p>
+              </>
+            )}
+            {activeTab === "workbench" && (
+              <>
+                <h2>⚡ 災害整理工作台</h2>
+                <p>使用安全邊界與 AI 智慧分析整理草稿，評估行動可行性。</p>
+              </>
+            )}
+          </div>
+        </header>
 
         {/* Dynamic API Configuration Panel */}
         {showSettings && (
           <div
             style={{
-              marginTop: "20px",
+              marginBottom: "24px",
               padding: "20px",
-              background: "#f8fafc",
-              borderRadius: "14px",
+              background: "#ffffff",
+              borderRadius: "16px",
               border: "1px solid var(--border)",
+              boxShadow: "var(--shadow-md)",
               animation: "fadeIn 0.2s ease-out",
             }}
           >
@@ -356,46 +407,42 @@ export function App() {
             </div>
           </div>
         )}
-      </header>
 
-      <nav className="tabs" aria-label="第一階段工作區">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={activeTab === tab.key ? "active" : ""}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
-
-      <section className="panel">
-        {phase0Records.length === 0 ? (
-          <EmptyState message="目前沒有資料" />
-        ) : activeTab === "dashboard" ? (
-          <Phase0Dashboard records={phase0Records} drafts={drafts} />
-        ) : activeTab === "raw" ? (
-          <Phase0RawInfoPanel
-            records={phase0Records}
-            selectedRecordId={selectedRecordId}
-            onSelect={selectForWorkbench}
-          />
-        ) : (
-          <Phase0Workbench
-            records={phase0Records}
-            selectedRecordId={selectedRecordId}
-            onSelect={setSelectedRecordId}
-            drafts={drafts}
-            onSaveDraft={handleSaveDraft}
-            onDeleteDraft={handleDeleteDraft}
-            onResetDraft={handleResetDraft}
-            onSingleAI={handleSingleAIAnalysis}
-            onBatchAI={handleBatchAIAnalysis}
-          />
-        )}
-      </section>
+        <section
+          className="panel"
+          style={{
+            border: activeTab === "dashboard" ? "none" : undefined,
+            padding: activeTab === "dashboard" ? 0 : undefined,
+            background: activeTab === "dashboard" ? "transparent" : undefined,
+            boxShadow: activeTab === "dashboard" ? "none" : undefined,
+            marginTop: "12px",
+          }}
+        >
+          {phase0Records.length === 0 ? (
+            <EmptyState message="目前沒有資料" />
+          ) : activeTab === "dashboard" ? (
+            <Phase0Dashboard records={phase0Records} drafts={drafts} />
+          ) : activeTab === "raw" ? (
+            <Phase0RawInfoPanel
+              records={phase0Records}
+              selectedRecordId={selectedRecordId}
+              onSelect={selectForWorkbench}
+            />
+          ) : (
+            <Phase0Workbench
+              records={phase0Records}
+              selectedRecordId={selectedRecordId}
+              onSelect={setSelectedRecordId}
+              drafts={drafts}
+              onSaveDraft={handleSaveDraft}
+              onDeleteDraft={handleDeleteDraft}
+              onResetDraft={handleResetDraft}
+              onSingleAI={handleSingleAIAnalysis}
+              onBatchAI={handleBatchAIAnalysis}
+            />
+          )}
+        </section>
+      </main>
 
       {/* Global AI Loading Spinner Overlay */}
       {isAiLoading && (
@@ -406,6 +453,6 @@ export function App() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
