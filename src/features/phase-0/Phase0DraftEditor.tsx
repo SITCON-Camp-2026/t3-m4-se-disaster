@@ -35,11 +35,13 @@ export function Phase0DraftEditor({
   onSave,
   onDelete,
   onReset,
+  onReAnalyze,
 }: {
   draft: Phase0JudgementDraft;
   onSave: (draft: Phase0JudgementDraft) => void;
   onDelete: () => void;
   onReset: () => void;
+  onReAnalyze?: () => void;
 }) {
   const [possibleKind, setPossibleKind] = useState<Phase0PossibleKind>(
     draft.possibleKind,
@@ -426,6 +428,24 @@ export function Phase0DraftEditor({
 
         {/* Action Buttons */}
         <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+          {onReAnalyze && (
+            <button
+              type="button"
+              onClick={onReAnalyze}
+              style={{
+                backgroundColor: "var(--primary-light)",
+                color: "var(--primary)",
+                border: "1px solid var(--primary)",
+                padding: "10px 14px",
+                borderRadius: "8px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+              title="使用 AI 重新智慧分析此原始資料"
+            >
+              🤖 AI 重新分析
+            </button>
+          )}
           <button
             type="button"
             onClick={handleSave}

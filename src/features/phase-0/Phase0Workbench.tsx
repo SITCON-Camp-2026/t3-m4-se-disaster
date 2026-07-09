@@ -13,6 +13,8 @@ export function Phase0Workbench({
   onSaveDraft,
   onDeleteDraft,
   onResetDraft,
+  onSingleAI,
+  onBatchAI,
 }: {
   records: Phase0MessyRecord[];
   selectedRecordId: string;
@@ -21,6 +23,8 @@ export function Phase0Workbench({
   onSaveDraft: (recordId: string, draft: Phase0JudgementDraft) => void;
   onDeleteDraft: (recordId: string) => void;
   onResetDraft: (recordId: string) => void;
+  onSingleAI: (recordId: string, rawText: string) => void;
+  onBatchAI: () => void;
 }) {
   const selectedRecord =
     records.find((record) => record.id === selectedRecordId) ?? records[0];
@@ -47,6 +51,29 @@ export function Phase0Workbench({
 
       <div className="workbench__layout">
         <aside className="workbench__queue" aria-label="選擇原始資訊">
+          <button
+            type="button"
+            onClick={onBatchAI}
+            style={{
+              backgroundColor: "var(--primary)",
+              color: "white",
+              border: "none",
+              padding: "12px",
+              borderRadius: "10px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "6px",
+              boxShadow: "0 4px 12px var(--primary-glow)",
+              marginBottom: "8px",
+              width: "100%",
+            }}
+            title="自動使用 AI 智慧整理所有尚未分析的原始回報"
+          >
+            ⚡ 批次 AI 自動分析
+          </button>
           {records.map((record) => {
             const hasDraft = !!drafts[record.id];
             return (
@@ -92,10 +119,14 @@ export function Phase0Workbench({
 
           {currentDraft ? (
             <Phase0DraftEditor
+              key={currentDraft.messyRecordId}
               draft={currentDraft}
               onSave={(d) => onSaveDraft(selectedRecord.id, d)}
               onDelete={() => onDeleteDraft(selectedRecord.id)}
               onReset={() => onResetDraft(selectedRecord.id)}
+              onReAnalyze={() =>
+                onSingleAI(selectedRecord.id, selectedRecord.rawText)
+              }
             />
           ) : (
             <div>
@@ -105,26 +136,49 @@ export function Phase0Workbench({
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: "12px",
+                  gap: "10px",
                 }}
               >
                 <span style={{ color: "#8a5a00", fontWeight: "bold" }}>
                   ⚠️ 本筆資料尚未建立整理草稿
                 </span>
-                <button
-                  type="button"
-                  onClick={handleCreateDraft}
-                  style={{
-                    backgroundColor: "#116b37",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                  }}
-                >
-                  建立整理草稿
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSingleAI(selectedRecord.id, selectedRecord.rawText)
+                    }
+                    style={{
+                      backgroundColor: "var(--primary)",
+                      color: "white",
+                      border: "none",
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    ✨ AI 智慧分析
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateDraft}
+                    style={{
+                      backgroundColor: "#116b37",
+                      color: "white",
+                      border: "none",
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                    }}
+                  >
+                    建立整理草稿
+                  </button>
+                </div>
               </div>
               <Phase0JudgementCard
                 judgement={safetyBoundary}
