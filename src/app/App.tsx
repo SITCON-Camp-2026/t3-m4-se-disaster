@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import messyReports from "../fixtures/phase-0/messy-reports.json";
 import { EmptyState } from "../components/EmptyState";
 import { Phase0RawInfoPanel } from "../features/phase-0/Phase0RawInfoPanel";
@@ -26,19 +26,67 @@ export function App() {
   const [selectedRecordId, setSelectedRecordId] = useState(
     phase0Records[0]?.id ?? "",
   );
-  const [drafts, setDrafts] =
-    useState<Record<string, Phase0JudgementDraft>>(initialDrafts);
 
-  // AI Credentials from environment variables or custom user input
-  const [apiKey, setApiKey] = useState(
-    (import.meta.env.VITE_AI_API_KEY as string) || "",
+  // Persistence Memory for drafts
+  const [drafts, setDrafts] = useState<Record<string, Phase0JudgementDraft>>(
+    () => {
+      if (
+        typeof window !== "undefined" &&
+        typeof localStorage !== "undefined"
+      ) {
+        const saved = localStorage.getItem("sitcon_camp_drafts");
+        if (saved) {
+          try {
+            return JSON.parse(saved);
+          } catch (e) {
+            console.error("Failed to parse saved drafts", e);
+          }
+        }
+      }
+      return initialDrafts;
+    },
   );
-  const [baseUrl, setBaseUrl] = useState(
-    (import.meta.env.VITE_AI_BASE_URL as string) ||
-      "https://ai.tfdst.xyz/v1/chat/completions",
-  );
+
+  // Persistence Memory for API Credentials
+  const [apiKey, setApiKey] = useState(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("sitcon_camp_api_key");
+      if (saved) return saved;
+    }
+    return (import.meta.env.VITE_AI_API_KEY as string) || "";
+  });
+
+  const [baseUrl, setBaseUrl] = useState(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      const saved = localStorage.getItem("sitcon_camp_base_url");
+      if (saved) return saved;
+    }
+    return (
+      (import.meta.env.VITE_AI_BASE_URL as string) ||
+      "https://ai.tfdst.xyz/v1/chat/completions"
+    );
+  });
 
   const [showSettings, setShowSettings] = useState(false);
+
+  // Sync to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      localStorage.setItem("sitcon_camp_drafts", JSON.stringify(drafts));
+    }
+  }, [drafts]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      localStorage.setItem("sitcon_camp_api_key", apiKey);
+    }
+  }, [apiKey]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+      localStorage.setItem("sitcon_camp_base_url", baseUrl);
+    }
+  }, [baseUrl]);
 
   // AI Loading & Progress states
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -260,25 +308,51 @@ export function App() {
                   }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSettings(false);
-                  alert("API 設定已暫存於 React 狀態！已就緒進行 AI 分析。");
-                }}
-                style={{
-                  backgroundColor: "var(--primary)",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  width: "fit-content",
-                }}
-              >
-                儲存設定
-              </button>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    alert("API 設定已儲存於瀏覽器記憶中！");
+                  }}
+                  style={{
+                    backgroundColor: "var(--primary)",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  儲存設定
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      confirm(
+                        "您確定要清除所有已整理的草稿記憶，並恢復預設狀態嗎？",
+                      )
+                    ) {
+                      setDrafts(initialDrafts);
+                      localStorage.removeItem("sitcon_camp_drafts");
+                      alert("記憶已成功清除並重設！");
+                    }
+                  }}
+                  style={{
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 16px",
+                    borderRadius: "8px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                  }}
+                >
+                  🧹 清除記憶 (重設草稿)
+                </button>
+              </div>
             </div>
           </div>
         )}
