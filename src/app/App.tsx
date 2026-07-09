@@ -3,7 +3,11 @@ import messyReports from "../fixtures/phase-0/messy-reports.json";
 import { EmptyState } from "../components/EmptyState";
 import { Phase0RawInfoPanel } from "../features/phase-0/Phase0RawInfoPanel";
 import { Phase0Workbench } from "../features/phase-0/Phase0Workbench";
-import type { Phase0MessyRecord } from "../features/phase-0/phase0-types";
+import type {
+  Phase0MessyRecord,
+  Phase0JudgementDraft,
+} from "../features/phase-0/phase0-types";
+import { initialDrafts } from "../features/phase-0/phase0-initial-drafts";
 
 type TabKey = "raw" | "workbench";
 
@@ -19,10 +23,32 @@ export function App() {
   const [selectedRecordId, setSelectedRecordId] = useState(
     phase0Records[0]?.id ?? "",
   );
+  const [drafts, setDrafts] =
+    useState<Record<string, Phase0JudgementDraft>>(initialDrafts);
 
   function selectForWorkbench(recordId: string) {
     setSelectedRecordId(recordId);
     setActiveTab("workbench");
+  }
+
+  function handleSaveDraft(recordId: string, draft: Phase0JudgementDraft) {
+    setDrafts((prev) => ({ ...prev, [recordId]: draft }));
+  }
+
+  function handleDeleteDraft(recordId: string) {
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[recordId];
+      return next;
+    });
+  }
+
+  function handleResetDraft(recordId: string) {
+    setDrafts((prev) => {
+      const next = { ...prev };
+      delete next[recordId];
+      return next;
+    });
   }
 
   return (
@@ -63,6 +89,10 @@ export function App() {
             records={phase0Records}
             selectedRecordId={selectedRecordId}
             onSelect={setSelectedRecordId}
+            drafts={drafts}
+            onSaveDraft={handleSaveDraft}
+            onDeleteDraft={handleDeleteDraft}
+            onResetDraft={handleResetDraft}
           />
         )}
       </section>
