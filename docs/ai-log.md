@@ -23,11 +23,13 @@
 
 ## 紀錄格式
 
-| 時間  | 階段    | 任務           | AI / Agent 建議                                          | 採用 / 拒絕 | 人類判斷理由                                                                           | 相關檔案 / commit                               |
-| ----- | ------- | -------------- | -------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| 09:55 | Phase 0 | 分析原始資訊   | 建議將 M-004 及 M-005 預設為高品質且能直接轉成公告或任務 | 拒絕        | 社群群組傳言與無時間戳截圖極不安全，應列為 low 信心度與不可直接行動                    | `src/features/phase-0/phase0-initial-drafts.ts` |
-| 10:00 | Phase 0 | 實作草稿 CRUD  | 建議在 `Phase0Workbench` 內維護 React state 來儲存草稿   | 拒絕        | 切換分頁 tabs 會導致元件 unmount 而遺失草稿，應將狀態提升（Lift State Up）至 `App.tsx` | `src/app/App.tsx`                               |
-| 10:03 | Phase 0 | 實作草稿編輯器 | 使用 `useEffect` 同步選取資訊與草稿狀態                  | 拒絕        | ESLint 警告 effect 中 setState 造成 cascading render；改用 React 的 `key` 機制重建元件 | `src/features/phase-0/Phase0DraftEditor.tsx`    |
+| 時間  | 階段       | 任務                 | AI / Agent 建議                                                                 | 採用 / 拒絕 | 人類判斷理由                                                                                                      | 相關檔案 / commit                                                           |
+| ----- | ---------- | -------------------- | ------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 09:55 | Phase 0    | 分析原始資訊         | 建議將 M-004 及 M-005 預設為高品質且能直接轉成公告或任務                        | 拒絕        | 社群群組傳言與無時間戳截圖極不安全，應列為 low 信心度與不可直接行動                                               | `src/features/phase-0/phase0-initial-drafts.ts`                             |
+| 10:00 | Phase 0    | 實作草稿 CRUD        | 建議在 `Phase0Workbench` 內維護 React state 來儲存草稿                          | 拒絕        | 切換分頁 tabs 會導致元件 unmount 而遺失草稿，應將狀態提升（Lift State Up）至 `App.tsx`                            | `src/app/App.tsx`                                                           |
+| 10:03 | Phase 0    | 實作草稿編輯器       | 使用 `useEffect` 同步選取資訊與草稿狀態                                         | 拒絕        | ESLint 警告 effect 中 setState 造成 cascading render；改用 React 的 `key` 機制重建元件                            | `src/features/phase-0/Phase0DraftEditor.tsx`                                |
+| 13:40 | Phase 1    | 同步遠端教材         | 同步 remote 變更並合併 release-packs 內教材至 docs/ 對應目錄                    | 採用        | 遠端發佈了新的 Release 01 及 Release 02 教材，同步至 docs/ 下以供後續閱讀與編修                                   | `docs/` 下的各項教材與範本                                                  |
+| 13:48 | Release 01 | 使用者訪談與需求彙整 | 透過三個 `self` subagent 模擬扮演回報者、整理者、行動者給予回饋，並自動彙整需求 | 採用        | 能從不同使用者視角深刻揭露原型在時效性、AI 腦補與隱私上的重大安全隱患；人工對彙整結論進行了大幅修正與小隊討論補充 | `docs/interview-notes.md`, `docs/interview-summary.md`, `docs/decisions.md` |
 
 ## 範例
 
