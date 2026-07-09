@@ -9,10 +9,12 @@ import type {
 } from "../features/phase-0/phase0-types";
 import { initialDrafts } from "../features/phase-0/phase0-initial-drafts";
 import { analyzeReportWithAI } from "../features/phase-0/phase0-ai";
+import { Phase0Dashboard } from "../features/phase-0/Phase0Dashboard";
 
-type TabKey = "raw" | "workbench";
+type TabKey = "dashboard" | "raw" | "workbench";
 
 const tabs: Array<{ key: TabKey; label: string }> = [
+  { key: "dashboard", label: "數據儀表板" },
   { key: "raw", label: "原始資訊" },
   { key: "workbench", label: "整理工作台" },
 ];
@@ -20,7 +22,7 @@ const tabs: Array<{ key: TabKey; label: string }> = [
 const phase0Records = messyReports satisfies Phase0MessyRecord[];
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>("raw");
+  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [selectedRecordId, setSelectedRecordId] = useState(
     phase0Records[0]?.id ?? "",
   );
@@ -298,6 +300,8 @@ export function App() {
       <section className="panel">
         {phase0Records.length === 0 ? (
           <EmptyState message="目前沒有資料" />
+        ) : activeTab === "dashboard" ? (
+          <Phase0Dashboard records={phase0Records} drafts={drafts} />
         ) : activeTab === "raw" ? (
           <Phase0RawInfoPanel
             records={phase0Records}
