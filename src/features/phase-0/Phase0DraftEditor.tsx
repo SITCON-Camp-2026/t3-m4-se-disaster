@@ -60,8 +60,20 @@ export function Phase0DraftEditor({
   const [evidence, setEvidence] = useState<string[]>(draft.evidence);
   const [blockers, setBlockers] = useState<string[]>(draft.blockers);
 
+  // New extended analysis states
+  const [requiredSkills, setRequiredSkills] = useState<string[]>(
+    draft.requiredSkills ?? [],
+  );
+  const [locationArea, setLocationArea] = useState<string>(
+    draft.locationArea ?? "",
+  );
+  const [detailedCategory, setDetailedCategory] = useState<string>(
+    draft.detailedCategory ?? "",
+  );
+
   const [newEvidence, setNewEvidence] = useState("");
   const [newBlocker, setNewBlocker] = useState("");
+  const [newSkill, setNewSkill] = useState("");
 
   function handleSave() {
     onSave({
@@ -73,6 +85,9 @@ export function Phase0DraftEditor({
       suggestedNextStep,
       unsafeToActDirectly,
       humanReviewNote,
+      requiredSkills,
+      locationArea,
+      detailedCategory,
     });
   }
 
@@ -88,6 +103,17 @@ export function Phase0DraftEditor({
       setBlockers((prev) => [...prev, newBlocker.trim()]);
       setNewBlocker("");
     }
+  }
+
+  function addSkill() {
+    if (newSkill.trim()) {
+      setRequiredSkills((prev) => [...prev, newSkill.trim()]);
+      setNewSkill("");
+    }
+  }
+
+  function removeSkill(index: number) {
+    setRequiredSkills((prev) => prev.filter((_, i) => i !== index));
   }
 
   function removeEvidence(index: number) {
@@ -116,6 +142,44 @@ export function Phase0DraftEditor({
         >
           草稿中
         </span>
+      </div>
+
+      {/* Premium Analysis Meta Badges */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "8px",
+          marginBottom: "16px",
+          padding: "10px 14px",
+          background: "#f8fafc",
+          borderRadius: "10px",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+          📍 <b>區域：</b> {locationArea || "未指定"}
+        </span>
+        <span
+          style={{
+            fontSize: "0.85rem",
+            color: "var(--text-muted)",
+            marginLeft: "12px",
+          }}
+        >
+          🏷️ <b>分類：</b> {detailedCategory || "未指定"}
+        </span>
+        {requiredSkills.length > 0 && (
+          <span
+            style={{
+              fontSize: "0.85rem",
+              color: "var(--text-muted)",
+              marginLeft: "12px",
+            }}
+          >
+            🛠️ <b>職能：</b> {requiredSkills.join("、")}
+          </span>
+        )}
       </div>
 
       <div style={{ display: "grid", gap: "16px", marginTop: "12px" }}>
@@ -190,6 +254,156 @@ export function Phase0DraftEditor({
               ))}
             </select>
           </div>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "12px",
+          }}
+        >
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                marginBottom: "4px",
+              }}
+            >
+              區域 (Location Area)
+            </label>
+            <input
+              type="text"
+              placeholder="例如：光復車站後方..."
+              value={locationArea}
+              onChange={(e) => setLocationArea(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px",
+                borderRadius: "8px",
+                border: "1px solid #cfd8e3",
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: "block",
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                marginBottom: "4px",
+              }}
+            >
+              詳細分類 (Detailed Category)
+            </label>
+            <input
+              type="text"
+              placeholder="例如：人力需求、道路受阻..."
+              value={detailedCategory}
+              onChange={(e) => setDetailedCategory(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "8px",
+                borderRadius: "8px",
+                border: "1px solid #cfd8e3",
+              }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            style={{
+              display: "block",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              marginBottom: "4px",
+            }}
+          >
+            職能需求 (Required Skills)
+          </label>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+            <input
+              type="text"
+              placeholder="例如：清泥、水電、物資搬運..."
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              style={{
+                flex: 1,
+                padding: "8px",
+                borderRadius: "8px",
+                border: "1px solid #cfd8e3",
+              }}
+              onKeyDown={(e) => e.key === "Enter" && addSkill()}
+            />
+            <button
+              type="button"
+              onClick={addSkill}
+              style={{
+                border: "1px solid #2563eb",
+                color: "#2563eb",
+                background: "white",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                cursor: "pointer",
+              }}
+            >
+              新增
+            </button>
+          </div>
+          {requiredSkills.length === 0 ? (
+            <p
+              style={{ fontSize: "0.85rem", color: "#5f6b7a", margin: "4px 0" }}
+            >
+              無特定職能需求限制
+            </p>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "6px",
+                margin: "4px 0",
+              }}
+            >
+              {requiredSkills.map((skill, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    backgroundColor: "var(--primary-light)",
+                    color: "var(--primary)",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    border: "1px solid rgba(37, 99, 235, 0.15)",
+                  }}
+                >
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(idx)}
+                    style={{
+                      border: "none",
+                      background: "none",
+                      color: "#9f1f17",
+                      cursor: "pointer",
+                      padding: 0,
+                      fontWeight: "bold",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>

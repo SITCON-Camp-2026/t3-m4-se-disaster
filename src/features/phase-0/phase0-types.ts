@@ -34,4 +34,7 @@ export type Phase0JudgementDraft = {
   suggestedNextStep: Phase0SuggestedNextStep;
   unsafeToActDirectly: boolean;
   humanReviewNote?: string;
+  requiredSkills?: string[]; // 職能需求
+  locationArea?: string; // 區域
+  detailedCategory?: string; // 分類
 };

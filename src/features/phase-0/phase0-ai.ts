@@ -41,7 +41,10 @@ The JSON schema must match exactly:
   "blockers": string[],
   "suggestedNextStep": "keep_raw" | "ask_for_more_info" | "send_to_human_review" | "create_candidate_report" | "create_site_update_suggestion" | "do_not_use_yet",
   "unsafeToActDirectly": boolean,
-  "humanReviewNote": string
+  "humanReviewNote": string,
+  "requiredSkills": string[],
+  "locationArea": string,
+  "detailedCategory": string
 }
 
 Rules:
@@ -50,7 +53,10 @@ Rules:
 - evidence: strings from raw text supporting possibleKind.
 - blockers: potential issues like "地址模糊且無定位", "時效過期", "非當事人通報且涉及隱私".
 - unsafeToActDirectly: set to true if blockers exist or if it needs verification, false only if highly verified.
-- humanReviewNote: detailed reasoning explaining why it is safe or unsafe and what steps to take next (in Traditional Chinese 繁體中文).`;
+- humanReviewNote: detailed reasoning explaining why it is safe or unsafe and what steps to take next (in Traditional Chinese 繁體中文).
+- requiredSkills: string array representing requested volunteer skills/attributions (e.g. ["清泥", "水電", "物資搬運", "醫療"]. If none, return []). Translate to Traditional Chinese.
+- locationArea: string representing the general area or site name (e.g. "光復車站後方", "溪畔活動中心", "大進路口"). Translate to Traditional Chinese.
+- detailedCategory: string representing detailed sub-classification (e.g. "道路受阻", "人力求助", "物資盤點", "物資需求", "安全警告"). Translate to Traditional Chinese.`;
 
   const payload = {
     model: "gemini-2.5-flash",
@@ -61,7 +67,17 @@ Rules:
     temperature: 0.1,
   };
 
-  const response = await fetch(baseUrl, {
+  let requestUrl = baseUrl;
+  if (
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1") &&
+    baseUrl.startsWith("https://ai.tfdst.xyz")
+  ) {
+    requestUrl = baseUrl.replace("https://ai.tfdst.xyz", "/api-proxy");
+  }
+
+  const response = await fetch(requestUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -90,6 +106,11 @@ Rules:
       suggestedNextStep: parsed.suggestedNextStep ?? "send_to_human_review",
       unsafeToActDirectly: !!parsed.unsafeToActDirectly,
       humanReviewNote: parsed.humanReviewNote ?? "",
+      requiredSkills: Array.isArray(parsed.requiredSkills)
+        ? parsed.requiredSkills
+        : [],
+      locationArea: parsed.locationArea ?? "",
+      detailedCategory: parsed.detailedCategory ?? "",
     };
   } catch (err) {
     console.error("Failed to parse AI JSON response:", rawContent, err);
